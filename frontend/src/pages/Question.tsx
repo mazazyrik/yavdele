@@ -251,64 +251,6 @@ const Question: React.FC = () => {
 
   const handleNext = async () => {
     setError('');
-    if (isSpeechQuestion) {
-      if (speechRecordingSupported && isSpeechRecording && mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
-        setIsSpeechRecording(false);
-      }
-      setIsUploading(true);
-      try {
-        let audioPath = '';
-        if (speechRecordingSupported && audioChunksRef.current.length > 0) {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          if (audioBlob.size > 0) {
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'speech.webm');
-            const response = await fetch(`${API_URL}/upload-audio/`, {
-              method: 'POST',
-              body: formData,
-            });
-            if (response.ok) {
-              const data = await response.json();
-              audioPath = data.audio_path;
-            }
-          }
-        }
-        const newAnswers = { ...answers, [currentQuestion.id]: audioPath ? { audio: audioPath } : { audio: null } };
-        setAnswers(newAnswers);
-        if (currentQuestionIndex < questions.length - 1) {
-          navigate(`/question/${currentQuestionIndex + 2}`);
-        } else {
-          const testData = {
-            answers_package: newAnswers,
-          };
-          const testResponse = await fetch(`${API_URL}/test/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(testData),
-          });
-          if (!testResponse.ok) {
-            setError('Ошибка сохранения теста');
-            setIsUploading(false);
-            return;
-          }
-          const responseData = await testResponse.json();
-          navigate('/results', { state: { testId: responseData.id } });
-        }
-      } catch (error) {
-        setError('Ошибка при обработке аудио');
-      } finally {
-        setIsUploading(false);
-      }
-      return;
-    }
-    if (!isAnswerFilled()) {
-      setError('Пожалуйста, заполните ответ');
-      return;
-    }
-
     if ((currentQuestion.type === 'tapping' || currentQuestion.id === 6) && isRecording && mediaRecorderRef.current) {
       setIsUploading(true);
       await new Promise<void>((resolve) => {
@@ -362,11 +304,15 @@ const Question: React.FC = () => {
       }
       return;
     }
-
+    if (!isAnswerFilled()) {
+      setError('Пожалуйста, заполните ответ');
+      return;
+    }
     const newAnswers = { ...answers, [currentQuestion.id]: answer };
     setAnswers(newAnswers);
-    
-    if (currentQuestionIndex === questions.length - 1) {
+    if (currentQuestionIndex < questions.length - 1) {
+      navigate(`/question/${currentQuestionIndex + 2}`);
+    } else {
       try {
         const testData = {
           answers_package: newAnswers,
@@ -378,11 +324,9 @@ const Question: React.FC = () => {
           },
           body: JSON.stringify(testData),
         });
-
         if (!response.ok) {
           throw new Error('Ошибка сохранения теста');
         }
-
         const responseData = await response.json();
         navigate('/results', { state: { testId: responseData.id } });
       } catch (error) {
