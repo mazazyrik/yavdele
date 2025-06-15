@@ -161,20 +161,22 @@ const Question: React.FC = () => {
     else setAnswer('');
     setTapped(false);
     if (currentQuestion.type === 'tapping') {
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play();
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+          const mediaRecorder = new window.MediaRecorder(stream);
+          mediaRecorderRef.current = mediaRecorder;
+          audioChunksRef.current = [];
+          mediaRecorder.start();
+          setIsRecording(true);
+          mediaRecorder.ondataavailable = e => {
+            audioChunksRef.current.push(e.data);
+          };
+        }).catch(error => {
+          setError('Ошибка доступа к микрофону');
+        });
+      } else {
+        setError('Ваш браузер не поддерживает запись аудио');
       }
-      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-        const mediaRecorder = new window.MediaRecorder(stream);
-        mediaRecorderRef.current = mediaRecorder;
-        audioChunksRef.current = [];
-        mediaRecorder.start();
-        setIsRecording(true);
-        mediaRecorder.ondataavailable = e => {
-          audioChunksRef.current.push(e.data);
-        };
-      });
     }
     return () => {
       if (mediaRecorderRef.current && isRecording) {
@@ -448,6 +450,12 @@ const Question: React.FC = () => {
               onClick={() => {
                 setAnswer((prev: string) => prev + 'tap');
                 setTapped(true);
+                if (audioRef.current) {
+                  audioRef.current.currentTime = 0;
+                  audioRef.current.play().catch(error => {
+                    setError('Ошибка воспроизведения звука');
+                  });
+                }
               }}
             >
               Хлопнуть
