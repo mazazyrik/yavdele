@@ -211,7 +211,7 @@ const Question: React.FC = () => {
         const formData = new FormData();
         formData.append('audio', audioBlob, 'tapping.webm');
         try {
-          const response = await fetch('http://localhost:8000/api/upload-audio/', {
+          const response = await fetch('http://194.87.216.212:8000/api/upload-audio/', {
             method: 'POST',
             body: formData,
           });
@@ -225,7 +225,7 @@ const Question: React.FC = () => {
             const testData = {
               answers_package: newAnswers,
             };
-            fetch('http://localhost:8000/api/test/', {
+            fetch('http://194.87.216.212:8000/api/test/', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -258,7 +258,7 @@ const Question: React.FC = () => {
       const testData = {
         answers_package: newAnswers,
       };
-      fetch('http://localhost:8000/api/test/', {
+      fetch('http://194.87.216.212:8000/api/test/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -37,7 +37,7 @@ const CheckResults: React.FC = () => {
     setError('');
     setResult(null);
 
-    fetch(`http://localhost:8000/api/test/${testId}/`)
+    fetch(`http://194.87.216.212:8000/api/test/${testId}/`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Тест не найден');
