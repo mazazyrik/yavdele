@@ -138,6 +138,9 @@ const Question: React.FC = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isSpeechQuestion = currentQuestion.id === 6;
+  const [isSpeechRecording, setIsSpeechRecording] = useState(false);
+  const [speechAudioUrl, setSpeechAudioUrl] = useState<string | null>(null);
 
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
@@ -201,24 +204,113 @@ const Question: React.FC = () => {
     return !!answer;
   };
 
+  const handleStartSpeechRecording = async () => {
+    setError('');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setError('Ваш браузер не поддерживает запись аудио');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new window.MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      mediaRecorder.start();
+      setIsSpeechRecording(true);
+      mediaRecorder.ondataavailable = e => {
+        audioChunksRef.current.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        setIsSpeechRecording(false);
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setSpeechAudioUrl(URL.createObjectURL(audioBlob));
+      };
+    } catch (e) {
+      setError('Ошибка доступа к микрофону');
+    }
+  };
+
+  const handleStopSpeechRecording = () => {
+    if (mediaRecorderRef.current && isSpeechRecording) {
+      mediaRecorderRef.current.stop();
+      setIsSpeechRecording(false);
+    }
+  };
+
   const handleNext = async () => {
     setError('');
+    if (isSpeechQuestion) {
+      if (isSpeechRecording && mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+        setIsSpeechRecording(false);
+      }
+      setIsUploading(true);
+      try {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        if (audioBlob.size === 0) {
+          setError('Запись не содержит данных');
+          setIsUploading(false);
+          return;
+        }
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'speech.webm');
+        const response = await fetch(`${API_URL}/upload-audio/`, {
+          method: 'POST',
+          body: formData,
+        });
+        if (!response.ok) {
+          setError('Ошибка загрузки аудио');
+          setIsUploading(false);
+          return;
+        }
+        const data = await response.json();
+        const newAnswers = { ...answers, [currentQuestion.id]: { audio: data.audio_path } };
+        setAnswers(newAnswers);
+        if (currentQuestionIndex < questions.length - 1) {
+          navigate(`/question/${currentQuestionIndex + 2}`);
+        } else {
+          const testData = {
+            answers_package: newAnswers,
+          };
+          const testResponse = await fetch(`${API_URL}/test/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(testData),
+          });
+          if (!testResponse.ok) {
+            setError('Ошибка сохранения теста');
+            setIsUploading(false);
+            return;
+          }
+          const responseData = await testResponse.json();
+          navigate('/results', { state: { testId: responseData.id } });
+        }
+      } catch (error) {
+        setError('Ошибка при обработке аудио');
+      } finally {
+        setIsUploading(false);
+      }
+      return;
+    }
     if (!isAnswerFilled()) {
       setError('Пожалуйста, заполните ответ');
       return;
+    }
+
+    if (currentQuestion.type === 'tapping' && isRecording && mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
     }
 
     if (currentQuestionIndex < questions.length - 1) {
       navigate(`/question/${currentQuestionIndex + 2}`);
     }
 
-    if (currentQuestion.type === 'tapping' && isRecording && mediaRecorderRef.current) {
+    if (currentQuestion.type === 'tapping' && mediaRecorderRef.current) {
       setIsUploading(true);
       try {
-        console.log('Stopping recording...');
-        mediaRecorderRef.current.stop();
-        setIsRecording(false);
-
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         if (audioBlob.size === 0) {
           console.error('Empty audio recording');
@@ -396,6 +488,29 @@ const Question: React.FC = () => {
             <Typography variant="body2" color="text.secondary" align="center">
               Нарисуйте часы, расставьте цифры и укажите время "11:10"
             </Typography>
+          </Box>
+        </Box>
+      );
+    }
+    if (isSpeechQuestion) {
+      return (
+        <Box>
+          <Typography variant="body1" gutterBottom>
+            {currentQuestion.text}
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            {!isSpeechRecording ? (
+              <Button variant="contained" color="primary" onClick={handleStartSpeechRecording} disabled={isUploading}>
+                Начать запись
+              </Button>
+            ) : (
+              <Button variant="contained" color="secondary" onClick={handleStopSpeechRecording}>
+                Остановить запись
+              </Button>
+            )}
+            {speechAudioUrl && (
+              <audio controls src={speechAudioUrl} style={{ marginTop: 16 }} />
+            )}
           </Box>
         </Box>
       );

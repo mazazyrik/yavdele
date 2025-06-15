@@ -71,16 +71,26 @@ class TestAdmin(admin.ModelAdmin):
 
     def audio_player(self, obj):
         answer_5 = (obj.answers_package or {}).get('5', {})
-        audio_path = ''
+        audio_path_5 = ''
         if isinstance(answer_5, dict):
-            audio_path = answer_5.get('audio', '')
-        if audio_path:
-            return format_html(
-                '<audio controls style="width: 300px;">\n  '
-                '<source src="{}" type="audio/webm">\n  '
-                'Ваш браузер не поддерживает аудио.\n</audio>',
-                audio_path
-            )
+            audio_path_5 = answer_5.get('audio', '')
+        answer_6 = (obj.answers_package or {}).get('6', {})
+        audio_path_6 = ''
+        if isinstance(answer_6, dict):
+            audio_path_6 = answer_6.get('audio', '')
+        players = []
+        if audio_path_5:
+            players.append(format_html(
+                '<div>Аудио (5):<br><audio controls style="width: 300px;"><source src="{}" type="audio/webm">Ваш браузер не поддерживает аудио.</audio></div>',
+                audio_path_5
+            ))
+        if audio_path_6:
+            players.append(format_html(
+                '<div>Аудио (6, речь):<br><audio controls style="width: 300px;"><source src="{}" type="audio/webm">Ваш браузер не поддерживает аудио.</audio></div>',
+                audio_path_6
+            ))
+        if players:
+            return format_html(''.join(str(p) for p in players))
         return 'Нет аудиозаписи'
 
-    audio_player.short_description = 'Аудио (5)'
+    audio_player.short_description = 'Аудио (5, 6)'
