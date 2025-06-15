@@ -17,6 +17,7 @@ import {
   Grid,
 } from '@mui/material';
 import DrawingCanvas from '../shared/DrawingCanvas';
+import { API_URL } from '../config';
 
 interface Question {
   id: number;
@@ -213,7 +214,7 @@ const Question: React.FC = () => {
         const formData = new FormData();
         formData.append('audio', audioBlob, 'tapping.webm');
         try {
-          const response = await fetch('http://194.87.216.212:8000/api/upload-audio/', {
+          const response = await fetch(`${API_URL}/upload-audio/`, {
             method: 'POST',
             body: formData,
           });
@@ -227,7 +228,7 @@ const Question: React.FC = () => {
             const testData = {
               answers_package: newAnswers,
             };
-            fetch('http://194.87.216.212:8000/api/test/', {
+            fetch(`${API_URL}/test/`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -260,7 +261,7 @@ const Question: React.FC = () => {
       const testData = {
         answers_package: newAnswers,
       };
-      fetch('http://194.87.216.212:8000/api/test/', {
+      fetch(`${API_URL}/test/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -360,7 +361,22 @@ const Question: React.FC = () => {
           <Typography variant="body1" gutterBottom>
             {currentQuestion.text}
           </Typography>
-          <DrawingCanvas width={350} height={350} onChange={dataUrl => setAnswer(dataUrl)} />
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center',
+            gap: 2,
+            width: '100%'
+          }}>
+            <DrawingCanvas 
+              width={350} 
+              height={350} 
+              onChange={dataUrl => setAnswer(dataUrl)} 
+            />
+            <Typography variant="body2" color="text.secondary" align="center">
+              Нарисуйте часы, расставьте цифры и укажите время "11:10"
+            </Typography>
+          </Box>
         </Box>
       );
     }
@@ -418,24 +434,22 @@ const Question: React.FC = () => {
             <Typography variant="body1" gutterBottom>
               {currentQuestion.text}
             </Typography>
-            <Card>
-              <CardContent>
-                <Box
-                  sx={{
-                    width: '100%',
-                    height: '300px',
-                    border: '1px dashed grey',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Typography color="textSecondary">
-                    Здесь будет область для рисования
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              gap: 2,
+              width: '100%'
+            }}>
+              <DrawingCanvas 
+                width={350} 
+                height={350} 
+                onChange={dataUrl => setAnswer(dataUrl)} 
+              />
+              <Typography variant="body2" color="text.secondary" align="center">
+                Нарисуйте часы, расставьте цифры и укажите время "11:10"
+              </Typography>
+            </Box>
           </Box>
         );
       case 'tapping':
