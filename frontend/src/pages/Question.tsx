@@ -309,64 +309,55 @@ const Question: React.FC = () => {
       return;
     }
 
-    if (currentQuestion.type === 'tapping' && isRecording && mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-
-    if (currentQuestionIndex < questions.length - 1) {
-      navigate(`/question/${currentQuestionIndex + 2}`);
-    }
-
-    if (currentQuestion.type === 'tapping' && mediaRecorderRef.current) {
+    if ((currentQuestion.type === 'tapping' || currentQuestion.id === 6) && isRecording && mediaRecorderRef.current) {
       setIsUploading(true);
+      await new Promise<void>((resolve) => {
+        if (mediaRecorderRef.current) {
+          mediaRecorderRef.current.onstop = () => {
+            resolve();
+          };
+          mediaRecorderRef.current.stop();
+          setIsRecording(false);
+        } else {
+          resolve();
+        }
+      });
       try {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        if (audioBlob.size === 0) {
-          console.error('Empty audio recording');
-          return;
-        }
-
         const formData = new FormData();
-        formData.append('audio', audioBlob, 'tapping.webm');
-
+        formData.append('audio', audioBlob, currentQuestion.id === 6 ? 'speech.webm' : 'tapping.webm');
         const response = await fetch(`${API_URL}/upload-audio/`, {
           method: 'POST',
           body: formData,
         });
-
-        if (!response.ok) {
-          console.error('Upload error:', await response.text());
-          return;
-        }
-
         const data = await response.json();
         const newAnswers = { ...answers, [currentQuestion.id]: { answer, audio: data.audio_path } };
         setAnswers(newAnswers);
-
-        if (currentQuestionIndex === questions.length - 1) {
+        setIsUploading(false);
+        if (currentQuestionIndex < questions.length - 1) {
+          navigate(`/question/${currentQuestionIndex + 2}`);
+        } else {
           const testData = {
             answers_package: newAnswers,
           };
-          const testResponse = await fetch(`${API_URL}/test/`, {
+          fetch(`${API_URL}/test/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(testData),
-          });
-
-          if (!testResponse.ok) {
-            console.error('Test save error:', await testResponse.text());
-            return;
-          }
-
-          const responseData = await testResponse.json();
-          navigate('/results', { state: { testId: responseData.id } });
+          })
+            .then(response => response.json())
+            .then(data => {
+              navigate('/results', { state: { testId: data.id } });
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              navigate('/results', { state: { testId: 'error' } });
+            });
         }
-      } catch (error) {
-        console.error('Error in audio processing:', error);
-      } finally {
+      } catch (e) {
+        setError('Ошибка загрузки аудио');
         setIsUploading(false);
       }
       return;
