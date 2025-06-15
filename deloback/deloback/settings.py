@@ -11,7 +11,10 @@ SECRET_KEY = (
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '194.87.216.212',
+    'http://194.87.216.212'
+]
 
 
 INSTALLED_APPS = [
