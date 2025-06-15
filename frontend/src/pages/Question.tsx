@@ -209,73 +209,92 @@ const Question: React.FC = () => {
     }
     if (currentQuestion.type === 'tapping' && isRecording && mediaRecorderRef.current) {
       setIsUploading(true);
-      mediaRecorderRef.current.onstop = async () => {
+      try {
+        mediaRecorderRef.current.stop();
+        setIsRecording(false);
+
+        await new Promise<void>((resolve) => {
+          if (mediaRecorderRef.current) {
+            mediaRecorderRef.current.onstop = () => {
+              resolve();
+            };
+          }
+        });
+
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const formData = new FormData();
         formData.append('audio', audioBlob, 'tapping.webm');
-        try {
-          const response = await fetch(`${API_URL}/upload-audio/`, {
-            method: 'POST',
-            body: formData,
-          });
-          const data = await response.json();
-          const newAnswers = { ...answers, [currentQuestion.id]: { answer, audio: data.audio_path } };
-          setAnswers(newAnswers);
-          setIsUploading(false);
-          if (currentQuestionIndex < questions.length - 1) {
-            navigate(`/question/${currentQuestionIndex + 2}`);
-          } else {
-            const testData = {
-              answers_package: newAnswers,
-            };
-            fetch(`${API_URL}/test/`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(testData),
-            })
-              .then(response => response.json())
-              .then(data => {
-                navigate('/results', { state: { testId: data.id } });
-              })
-              .catch(error => {
-                console.error('Error:', error);
-                navigate('/results', { state: { testId: 'error' } });
-              });
-          }
-        } catch (e) {
-          setError('Ошибка загрузки аудио');
-          setIsUploading(false);
+
+        const response = await fetch(`${API_URL}/upload-audio/`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Ошибка загрузки аудио');
         }
-      };
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+
+        const data = await response.json();
+        const newAnswers = { ...answers, [currentQuestion.id]: { answer, audio: data.audio_path } };
+        setAnswers(newAnswers);
+
+        if (currentQuestionIndex < questions.length - 1) {
+          navigate(`/question/${currentQuestionIndex + 2}`);
+        } else {
+          const testData = {
+            answers_package: newAnswers,
+          };
+          const testResponse = await fetch(`${API_URL}/test/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(testData),
+          });
+
+          if (!testResponse.ok) {
+            throw new Error('Ошибка сохранения теста');
+          }
+
+          const responseData = await testResponse.json();
+          navigate('/results', { state: { testId: responseData.id } });
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        setError('Произошла ошибка при обработке аудио. Пожалуйста, попробуйте еще раз.');
+      } finally {
+        setIsUploading(false);
+      }
       return;
     }
+
     const newAnswers = { ...answers, [currentQuestion.id]: answer };
     setAnswers(newAnswers);
     if (currentQuestionIndex < questions.length - 1) {
       navigate(`/question/${currentQuestionIndex + 2}`);
     } else {
-      const testData = {
-        answers_package: newAnswers,
-      };
-      fetch(`${API_URL}/test/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testData),
-      })
-        .then(response => response.json())
-        .then(data => {
-          navigate('/results', { state: { testId: data.id } });
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          navigate('/results', { state: { testId: 'error' } });
+      try {
+        const testData = {
+          answers_package: newAnswers,
+        };
+        const response = await fetch(`${API_URL}/test/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(testData),
         });
+
+        if (!response.ok) {
+          throw new Error('Ошибка сохранения теста');
+        }
+
+        const responseData = await response.json();
+        navigate('/results', { state: { testId: responseData.id } });
+      } catch (error) {
+        console.error('Error:', error);
+        setError('Произошла ошибка при сохранении теста. Пожалуйста, попробуйте еще раз.');
+      }
     }
   };
 
