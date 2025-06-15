@@ -502,6 +502,45 @@ const Question: React.FC = () => {
         </Box>
       );
     }
+    if (currentQuestion.id === 6) {
+      return (
+        <Box>
+          <Typography variant="body1" gutterBottom>
+            {currentQuestion.text}
+          </Typography>
+          <Button
+            variant="contained"
+            color={isRecording ? 'secondary' : 'primary'}
+            onClick={async () => {
+              if (!isRecording) {
+                // Начать запись
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                  setError('Ваш браузер не поддерживает запись аудио');
+                  return;
+                }
+                try {
+                  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                  const mediaRecorder = new window.MediaRecorder(stream);
+                  mediaRecorderRef.current = mediaRecorder;
+                  audioChunksRef.current = [];
+                  mediaRecorder.start();
+                  setIsRecording(true);
+                  mediaRecorder.ondataavailable = e => {
+                    audioChunksRef.current.push(e.data);
+                  };
+                } catch (e) {
+                  setError('Ошибка доступа к микрофону');
+                }
+              }
+            }}
+            disabled={isRecording || isUploading}
+            sx={{ mt: 2 }}
+          >
+            {isRecording ? 'Идет запись...' : 'Начать запись'}
+          </Button>
+        </Box>
+      );
+    }
     if (isSpeechQuestion) {
       return (
         <Box>
