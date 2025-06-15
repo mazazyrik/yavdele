@@ -1,1 +1,1 @@
-export const API_URL = 'http://194.87.216.212:8000/api'; 
+export const API_URL = 'https://moca.ddns.net/api'; 
