@@ -141,6 +141,7 @@ const Question: React.FC = () => {
   const isSpeechQuestion = currentQuestion.id === 6;
   const [isSpeechRecording, setIsSpeechRecording] = useState(false);
   const [speechAudioUrl, setSpeechAudioUrl] = useState<string | null>(null);
+  const [speechRecordingSupported, setSpeechRecordingSupported] = useState(true);
 
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
@@ -182,6 +183,17 @@ const Question: React.FC = () => {
         setError('Ваш браузер не поддерживает запись аудио');
       }
     }
+    if (isSpeechQuestion) {
+      if (
+        typeof window.MediaRecorder === 'undefined' ||
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+      ) {
+        setSpeechRecordingSupported(false);
+      } else {
+        setSpeechRecordingSupported(true);
+      }
+    }
     return () => {
       if (mediaRecorderRef.current && isRecording) {
         mediaRecorderRef.current.stop();
@@ -206,8 +218,8 @@ const Question: React.FC = () => {
 
   const handleStartSpeechRecording = async () => {
     setError('');
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setError('Ваш браузер не поддерживает запись аудио');
+    if (!speechRecordingSupported) {
+      setError('Ваш браузер не поддерживает запись аудио. Вы можете продолжить без записи.');
       return;
     }
     try {
@@ -226,7 +238,7 @@ const Question: React.FC = () => {
         setSpeechAudioUrl(URL.createObjectURL(audioBlob));
       };
     } catch (e) {
-      setError('Ошибка доступа к микрофону');
+      setError('Ошибка доступа к микрофону. Вы можете продолжить без записи.');
     }
   };
 
@@ -240,31 +252,29 @@ const Question: React.FC = () => {
   const handleNext = async () => {
     setError('');
     if (isSpeechQuestion) {
-      if (isSpeechRecording && mediaRecorderRef.current) {
+      if (speechRecordingSupported && isSpeechRecording && mediaRecorderRef.current) {
         mediaRecorderRef.current.stop();
         setIsSpeechRecording(false);
       }
       setIsUploading(true);
       try {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        if (audioBlob.size === 0) {
-          setError('Запись не содержит данных');
-          setIsUploading(false);
-          return;
+        let audioPath = '';
+        if (speechRecordingSupported && audioChunksRef.current.length > 0) {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          if (audioBlob.size > 0) {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'speech.webm');
+            const response = await fetch(`${API_URL}/upload-audio/`, {
+              method: 'POST',
+              body: formData,
+            });
+            if (response.ok) {
+              const data = await response.json();
+              audioPath = data.audio_path;
+            }
+          }
         }
-        const formData = new FormData();
-        formData.append('audio', audioBlob, 'speech.webm');
-        const response = await fetch(`${API_URL}/upload-audio/`, {
-          method: 'POST',
-          body: formData,
-        });
-        if (!response.ok) {
-          setError('Ошибка загрузки аудио');
-          setIsUploading(false);
-          return;
-        }
-        const data = await response.json();
-        const newAnswers = { ...answers, [currentQuestion.id]: { audio: data.audio_path } };
+        const newAnswers = { ...answers, [currentQuestion.id]: audioPath ? { audio: audioPath } : { audio: null } };
         setAnswers(newAnswers);
         if (currentQuestionIndex < questions.length - 1) {
           navigate(`/question/${currentQuestionIndex + 2}`);
@@ -498,16 +508,22 @@ const Question: React.FC = () => {
           <Typography variant="body1" gutterBottom>
             {currentQuestion.text}
           </Typography>
+          {!speechRecordingSupported && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              Ваш браузер не поддерживает запись аудио. Вы можете продолжить без записи.
+            </Typography>
+          )}
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            {!isSpeechRecording ? (
+            {speechRecordingSupported && !isSpeechRecording ? (
               <Button variant="contained" color="primary" onClick={handleStartSpeechRecording} disabled={isUploading}>
                 Начать запись
               </Button>
-            ) : (
+            ) : null}
+            {speechRecordingSupported && isSpeechRecording ? (
               <Button variant="contained" color="secondary" onClick={handleStopSpeechRecording}>
                 Остановить запись
               </Button>
-            )}
+            ) : null}
             {speechAudioUrl && (
               <audio controls src={speechAudioUrl} style={{ marginTop: 16 }} />
             )}
