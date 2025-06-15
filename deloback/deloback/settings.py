@@ -13,7 +13,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     '194.87.216.212',
-    'http://194.87.216.212'
+    'http://194.87.216.212',
+    'moca.ddns.net',
 ]
 
 
