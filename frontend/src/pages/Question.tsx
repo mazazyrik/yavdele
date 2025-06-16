@@ -258,6 +258,7 @@ const Question: React.FC = () => {
           mediaRecorderRef.current.onstop = () => {
             resolve();
           };
+          mediaRecorderRef.current.requestData();
           mediaRecorderRef.current.stop();
           setIsRecording(false);
         } else {
