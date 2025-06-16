@@ -2,6 +2,7 @@ from django.contrib import admin
 from django import forms
 from django.utils.html import format_html
 from .models import Test
+from deloback.settings import BASE_DIR
 
 
 class TestAdminForm(forms.ModelForm):
@@ -79,20 +80,19 @@ class TestAdmin(admin.ModelAdmin):
         if isinstance(answer_6, dict):
             audio_path_6 = answer_6.get('audio', '')
         players = []
-        print(audio_path_5)
         if audio_path_5:
             players.append(format_html(
                 '<audio controls style="width: 300px;">\n  '
                 '<source src="{}" type="audio/webm">\n  '
                 'Ваш браузер не поддерживает аудио.\n</audio>',
-                audio_path_5
+                BASE_DIR + audio_path_5
             ))
         if audio_path_6:
             players.append(format_html(
                 '<audio controls style="width: 300px;">\n  '
                 '<source src="{}" type="audio/webm">\n  '
                 'Ваш браузер не поддерживает аудио.\n</audio>',
-                audio_path_6
+                BASE_DIR + audio_path_6
             ))
         if players:
             return format_html(''.join(str(p) for p in players))
