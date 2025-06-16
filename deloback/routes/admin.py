@@ -87,6 +87,7 @@ class TestAdmin(admin.ModelAdmin):
                 'Ваш браузер не поддерживает аудио.\n</audio>',
                 BASE_DIR + audio_path_5
             ))
+            print(BASE_DIR + audio_path_5)
         if audio_path_6:
             players.append(format_html(
                 '<audio controls style="width: 300px;">\n  '
