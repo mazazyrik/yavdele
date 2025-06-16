@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 from django.core.files.storage import default_storage
 from rest_framework.authentication import SessionAuthentication
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 
 class CsrfExemptSessionAuthentication(SessionAuthentication):
@@ -20,6 +22,7 @@ class TestViewSet(viewsets.ModelViewSet):
     authentication_classes = [CsrfExemptSessionAuthentication]
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class AudioUploadView(APIView):
     parser_classes = [MultiPartParser]
     authentication_classes = [CsrfExemptSessionAuthentication]
