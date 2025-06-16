@@ -17,6 +17,10 @@ ALLOWED_HOSTS = [
     'moca.ddns.net',
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://moca.ddns.net",
+]
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
