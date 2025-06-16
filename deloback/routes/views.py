@@ -22,6 +22,7 @@ class TestViewSet(viewsets.ModelViewSet):
 
 class AudioUploadView(APIView):
     parser_classes = [MultiPartParser]
+    authentication_classes = [CsrfExemptSessionAuthentication]
 
     def post(self, request, format=None):
         audio_file = request.FILES['audio']
