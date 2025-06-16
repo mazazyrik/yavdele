@@ -138,6 +138,7 @@ const Question: React.FC = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
   const isSpeechQuestion = currentQuestion.id === 6;
   const [isSpeechRecording, setIsSpeechRecording] = useState(false);
   const [speechAudioUrl, setSpeechAudioUrl] = useState<string | null>(null);
@@ -277,6 +278,10 @@ const Question: React.FC = () => {
         const newAnswers = { ...answers, [currentQuestion.id]: { answer, audio: data.audio_path } };
         setAnswers(newAnswers);
         setIsUploading(false);
+        if (audioStreamRef.current) {
+          audioStreamRef.current.getTracks().forEach(track => track.stop());
+          audioStreamRef.current = null;
+        }
         if (currentQuestionIndex < questions.length - 1) {
           navigate(`/question/${currentQuestionIndex + 2}`);
         } else {
@@ -456,6 +461,7 @@ const Question: React.FC = () => {
                 }
                 try {
                   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                  audioStreamRef.current = stream;
                   const mediaRecorder = new window.MediaRecorder(stream);
                   mediaRecorderRef.current = mediaRecorder;
                   audioChunksRef.current = [];
