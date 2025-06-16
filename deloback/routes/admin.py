@@ -79,6 +79,7 @@ class TestAdmin(admin.ModelAdmin):
         if isinstance(answer_6, dict):
             audio_path_6 = answer_6.get('audio', '')
         players = []
+        print(audio_path_5)
         if audio_path_5:
             players.append(format_html(
                 '<audio controls style="width: 300px;">\n  '
