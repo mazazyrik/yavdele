@@ -85,14 +85,14 @@ class TestAdmin(admin.ModelAdmin):
                 '<audio controls style="width: 300px;">\n  '
                 '<source src="{}" type="audio/webm">\n  '
                 'Ваш браузер не поддерживает аудио.\n</audio>',
-                BASE_DIR + str(audio_path_5)
+                str(BASE_DIR) + audio_path_5
             ))
         if audio_path_6:
             players.append(format_html(
                 '<audio controls style="width: 300px;">\n  '
                 '<source src="{}" type="audio/webm">\n  '
                 'Ваш браузер не поддерживает аудио.\n</audio>',
-                BASE_DIR + str(audio_path_6)
+                str(BASE_DIR) + audio_path_6
             ))
         if players:
             return format_html(''.join(str(p) for p in players))
