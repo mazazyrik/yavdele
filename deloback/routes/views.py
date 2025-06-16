@@ -1,3 +1,4 @@
+import os
 from rest_framework import viewsets
 from .serializers import TestSerializer
 from .models import Test
@@ -5,12 +6,18 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 from django.core.files.storage import default_storage
-import os
+from rest_framework.authentication import SessionAuthentication
+
+
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    def enforce_csrf(self, request):
+        return
 
 
 class TestViewSet(viewsets.ModelViewSet):
     serializer_class = TestSerializer
     queryset = Test.objects.all()
+    authentication_classes = [CsrfExemptSessionAuthentication]
 
 
 class AudioUploadView(APIView):
